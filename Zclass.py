@@ -13,10 +13,12 @@ class Z:
     """    
         Class for Z-images augmentation
     """
-    def __init__(self,z_img=None,z_path=None):
-        self.z_buf = z_img;
-        self.z_path = z_path;
-
+    def __init__(self,z_img=None,z_rgb=None,z_path=None,z_hsv=None):
+        self.z_buf = z_img
+        self.z_rgb = z_rgb
+        self.z_path = z_path
+        self.z_hsv = z_hsv
+        
 
     def anyRead(self,path=None):
         """
@@ -58,8 +60,48 @@ class Z:
             return False;
         else:
             return True;
-        #return None;
-    
+        
+        
+    def depth2gray(self,img=None,weights=[1,1,1]):
+        """
+        Converts a one-sliced iamge to a three-sliced rgb image, by simply 
+        copying the one slice to all slices    
+        @param img If img is not specified, it will try to load it from the 
+        member variable z_buf 
+        @param weights a 3element list, where each element stays for a 
+        multiplaction factor of each slice            
+        
+        """
+        if img is None:
+            img = self.z_buf;
+        
+        
+        grey_mirror = [weights[0]*img,weights[1]*img,weights[2]*img];
+        grey_mirror = np.transpose(grey_mirror,axes=(1,2,0))
+        self.z_rgb =  grey_mirror;
+        
+    def hack2hsv(self,z_rgb=None):
+        """
+        Converts a three-sliced rgb z-buffer image to its hsv representation. 
+        The desired input image can beachieved with the function depth2gray
+        
+        @param z_rgb three sliced valid z buffer image. If it is not provided, 
+        the function will try to read it from a member variable
+        
+        """
+        from skimage import color     
+        if z_rgb is None:
+            z_rgb = self.z_rgb
+        
+        z_rgb = np.asarray(z_rgb,dtype=np.uint16)
+        
+        hsv_d = color.rgb2hsv(z_rgb)
+        hsv_d[:,:,0]  = hsv_d[:,:,2]
+        hsv_d[:,:,1] = 0.3
+        #Image.fromarray(np.asarray(255*hsv_d,dtype=np.uint8))
+        self.z_hsv = color.hsv2rgb(hsv_d)
+        #self.z_hsv = hsv_d;
+        
     
     def showZImg(self,img=None):
         """
@@ -87,13 +129,7 @@ class Z:
             except Exception as e:
                 print(e)
             
+        
             
     
     
-Z_obj = Z();
-Z_obj.anyRead('/home/khoefle/Downloads/renderer/data/Earrings/depth/depth_120_340_340_0.5.png')
-#D
-Z_obj.showZImg()
-    
-
-
